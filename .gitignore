@@ -1,0 +1,12 @@
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+
+# Ignore environment files
+.env
+
+# Ignore specific files
+secrets_.py
+test.py
+agent_architecture.py
+update_market_data.py
