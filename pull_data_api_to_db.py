@@ -48,7 +48,7 @@ def pull_data(freq, db_params, stocks) :
     nconn = connect_with_retry(db_params)
     db_cursor = nconn.cursor()
     symbols = stocks
-    symbols.append('SPY')
+    #symbols.append('SPY')
     #symbols = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'NVDA', 'DIS', 'INTC', 'PYPL', 'CRM', 'IBM', 'SPY']
     #symbols = ['AAPL', 'MSFT']
     #intervals = date_slicer(start_date, end_date, freq)

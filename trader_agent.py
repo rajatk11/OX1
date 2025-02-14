@@ -23,6 +23,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import csv
 import datetime
+import time
 
 
 
@@ -60,7 +61,7 @@ def run_inference(policy_net, featdf, db_cursor, device):
         query = 'SELECT running_pnl, posn_norm from portfolio where stock = %s'
         
         db_cursor.execute(query, (featindarr[i][0],))
-        print('Problem stock : ', featindarr[i][0])
+        #print('Problem stock : ', featindarr[i][0])
         for row in db_cursor.fetchall():
             print(('ROW : ', row))
             run_pnl, pos_norm = row
@@ -110,7 +111,7 @@ def run_inference(policy_net, featdf, db_cursor, device):
     # print(featindarr)
     return featindarr
 
-def connect_with_retry(db_params, retries=3, delay=2):
+def connect_with_retry(db_params, retries=5, delay=5):
     for attempt in range(retries):
         try:
             nconn = psycopg2.connect(**db_params, connect_timeout=10)
@@ -124,13 +125,13 @@ def connect_with_retry(db_params, retries=3, delay=2):
 
 
 
-def main_run(db_params):
+def main_run(db_params, tickers):
     
     nconn = connect_with_retry(db_params)
     db_cursor = nconn.cursor()
 
-    query = 'SELECT max(datetime) from trade_inf;'
-    db_cursor.execute(query)
+    query = 'SELECT max(datetime) from trade_inf where stock=any(%s)'
+    db_cursor.execute(query, (tickers,))
 
     for row in db_cursor.fetchall():
         last_update = row[0]

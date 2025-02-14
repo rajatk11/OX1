@@ -88,8 +88,8 @@ def exec_trades(trlist, db_cursor):
     execlist = []
     for row in trlist:
         print('Entering', row)
-        if row[-1] == 'NE':
-            _, stock, dirn, _ = row
+        if row[-3] == 'NE':
+            trade_datetime, stock, dirn, _,_, _ = row
         else:
             continue
 
@@ -100,6 +100,8 @@ def exec_trades(trlist, db_cursor):
         else:
             exec_price, exec_time = get_curr_price(stock)
 
+        query = "UPDATE trade_inf set exec_time = %s, exec_price = %s where stock = %s and datetime = %s;"
+        db_cursor.execute(query, (exec_time, exec_price, stock, trade_datetime))
         execlist.append([exec_time, stock, dirn, exec_price])
 
     return execlist
@@ -130,12 +132,16 @@ def update_portfolio_trade(exec_list, db_cursor):
             if posn_norm == 0 :  # to determine if we're adding to position or reducing
 
                 posn_norm += dirn
+                exec_price = decimal.Decimal(exec_price)
                 posn_unit_size = avl_cash // exec_price
                 posn_val += decimal.Decimal(dirn * exec_price * posn_unit_size)
 
                 # posn_add = 1
                 posn_seq_price_colname = 'posn_1_price'
                 posn_seq_tmst_colname = 'posn_1_tmst'
+
+                pos_seq_price_val = exec_price
+                posn_seq_tmst_val = trade_time.strftime("%Y-%m-%d %H:%M:%S")
 
                 avl_cash -= decimal.Decimal(abs(posn_val))
 
@@ -231,6 +237,12 @@ def update_stock_summary(tr_up_list, db_cursor):
         for row in db_cursor.fetchall():
             _, longs_ct, shorts_ct, avg_hold_period, _, booked_pnl = row
 
+        #get posn_unit_size from portfolio
+        query2 = "SELECT posn_unit_size from portfolio where stock = %s"
+        db_cursor.execute(query2, (stock,))
+        for row in db_cursor.fetchone():
+            posn_unit_size = row
+
         if dirn == 1:
             shorts_ct += 1
         else:
@@ -238,7 +250,7 @@ def update_stock_summary(tr_up_list, db_cursor):
 
         avg_hold_period += (trade_durn - avg_hold_period) / (longs_ct + shorts_ct)
 
-        booked_pnl += trade_profit
+        booked_pnl += (trade_profit * posn_unit_size)
 
         upquery = "UPDATE stock_summary set longs_count = {lct}, shorts_count = {sct}, avg_hold_period_mins = {avp}, \
                    booked_pnl = {bpnl} where stock = %s".format(lct=longs_ct, sct=shorts_ct, avp=avg_hold_period, \
@@ -323,19 +335,20 @@ def update_perf(db_cursor):
     # Step 2: Get start_capital and booked_pnl for each stock from stock_summary
     db_cursor.execute("SELECT stock, start_capital, booked_pnl FROM stock_summary;")
     for stock, start_capital, booked_pnl in db_cursor.fetchall():
-        total_vals[stock] = {'start_capital': start_capital, 'booked_pnl': booked_pnl, 'running_pnl': 0, 'avl_cash': 0}
+        total_vals[stock] = {'start_capital': start_capital, 'booked_pnl': booked_pnl, 'running_pnl': 0, 'avl_cash': 0, posn_unit_size: 0}
 
     # Step 3: Get running_pnl and avl_cash for each stock from portfolio table
-    db_cursor.execute("SELECT stock, running_pnl, avl_cash FROM portfolio;")
-    for stock, running_pnl, avl_cash in db_cursor.fetchall():
+    db_cursor.execute("SELECT stock, running_pnl, avl_cash, posn_unit_size FROM portfolio;")
+    for stock, running_pnl, avl_cash, posn_unit_size in db_cursor.fetchall():
         if stock in total_vals:
             total_vals[stock]['running_pnl'] = running_pnl
             total_vals[stock]['avl_cash'] = avl_cash
+            total_vals[stock]['posn_unit_size'] = posn_unit_size
 
     # Step 4 & 5: Calculate total_val for each stock and find the latest update_time
     for stock in total_vals:
         vals = total_vals[stock]
-        total_val = vals['start_capital'] + vals['booked_pnl'] + vals['running_pnl'] + vals['avl_cash']
+        total_val = vals['start_capital'] + vals['booked_pnl'] + (vals['running_pnl'] * vals['posn_unit_size'])
         total_vals[stock]['total_val'] = total_val
         portfolio_total += total_val
 
@@ -389,7 +402,7 @@ def main_run(db_params):
     update_portfolio_stats(db_cursor)
     print('4')
     change_trade_status(db_cursor)
-    update_perf(db_cursor)
+    #update_perf(db_cursor)
     db_cursor.execute('commit;')
     db_cursor.close()
     nconn.close()
