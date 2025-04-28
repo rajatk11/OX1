@@ -23,6 +23,51 @@ def is_market_open(api_key):
     tr = client.get_market_status()
     return (tr.exchanges.nyse)
 
+
+def check_time_to_open():
+    """
+    Checks if it's a weekday after 4pm or a weekend, and returns seconds until next weekday 6am.
+    
+    Returns:
+        int: Seconds until next weekday 6am if conditions are met, otherwise 0
+    """
+    # Get current datetime in New York time zone
+    ny_timezone = pytz.timezone('America/New_York')
+    now = datetime.datetime.now(ny_timezone)
+    
+    # Check if it's a weekday (0 = Monday, 6 = Sunday)
+    is_weekday = now.weekday() < 5
+    
+    # Check if time is after 4pm (16:00)
+    is_after_4pm = now.hour >= 16
+    
+    # If it's a weekday after 4pm or a weekend, calculate time to next opening
+    if (is_weekday and is_after_4pm) or not is_weekday:
+        # Find the next weekday
+        days_ahead = 1
+        next_day = now + datetime.timedelta(days=days_ahead)
+        
+        # Keep adding days until we reach a weekday (Monday-Friday)
+        while next_day.weekday() >= 5:  # Saturday=5, Sunday=6
+            days_ahead += 1
+            next_day = now + datetime.timedelta(days=days_ahead)
+        
+        # Set time to 6am in New York timezone
+        next_opening = ny_timezone.localize(datetime.datetime(
+            next_day.year, 
+            next_day.month, 
+            next_day.day, 
+            6, 0, 0  # Hour=6, Minute=0, Second=0
+        ))
+        
+        # Calculate seconds difference
+        time_difference = next_opening - now
+        return int(time_difference.total_seconds())
+    
+    # If it's a weekday before 4pm, return 0 (already open)
+    return 60
+    
+
 #print(is_market_open('0_2MWuIiIwpeIBwEpgQDaQlYSJhMkaQw') != "open")
 
 def set_status(db_params, status, status_code) :
@@ -74,7 +119,7 @@ def main() :
         else :
             set_status(db_params, 'Market Closed', 0)
             print('Market Closed')
-            time.sleep(60)
+            time.sleep(check_time_to_open())
 
     
 
