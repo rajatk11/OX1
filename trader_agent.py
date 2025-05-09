@@ -75,7 +75,7 @@ def run_inference(policy_net, featdf, db_cursor, device):
 
 
 
-        feats3 = torch.tensor([[pos_norm, (run_pnl*100)/stock_price ]], dtype=torch.float32)
+        feats3 = torch.tensor([[pos_norm, (run_pnl)/stock_price ]], dtype=torch.float32)
 
         state1 = feats1[i].unsqueeze_(0)
         state1 = state1.unsqueeze_(0)

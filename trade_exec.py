@@ -134,7 +134,7 @@ def update_portfolio_trade(exec_list, db_cursor):
                 posn_norm += dirn
                 exec_price = decimal.Decimal(exec_price)
                 posn_unit_size = avl_cash // exec_price
-                posn_val += decimal.Decimal(dirn * exec_price * posn_unit_size)
+                posn_val = decimal.Decimal(dirn * exec_price * posn_unit_size)
 
                 # posn_add = 1
                 posn_seq_price_colname = 'posn_1_price'
@@ -228,7 +228,7 @@ def update_stock_summary(tr_up_list, db_cursor):
 
         stock, dirn, exec_price, trade_time, trade_in_price, trade_in_tmst = rec
         exec_price = decimal.Decimal(exec_price)
-        trade_profit = (exec_price - trade_in_price) * dirn
+        trade_profit = (exec_price - trade_in_price) * dirn * -1
         trade_durn = (trade_time - trade_in_tmst).total_seconds() // 60
         print('TRADe DURN : ', trade_durn)
         query = "SELECT * from stock_summary where stock = %s"
@@ -292,12 +292,13 @@ def update_portfolio_stats(db_cursor):
         #if p3 is None:
          #   p3 = 0
 
+
         running_pnl = (curr_price - abs(p1)) * posn_dirn
 
         open_today = get_days_open(stock)[0]
         open_today = decimal.Decimal(open_today)
 
-        days_gain_val = (open_today - abs(p1)) * posn_dirn
+        days_gain_val = (abs(curr_price)- open_today) * posn_dirn
 
         #if len(intervals) == 2:
         #   intervals.append(datetime.datetime.now() - t1)
@@ -393,7 +394,7 @@ def main_run(db_params):
 
     trlist = get_trades_to_exec(db_cursor)
     print('TR list done', trlist)
-    exec_list = exec_trades(trlist, db_cursor)
+    exec_list = 187 (trlist, db_cursor)
     print('HERE we go......' , exec_list)
     tr_up_lst = update_portfolio_trade(exec_list, db_cursor)
     print(tr_up_lst)
