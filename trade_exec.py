@@ -43,6 +43,16 @@ def get_days_open(stock):
         return (tr.prev_day.close, tmst)
 
 
+def get_prev_close(stock):
+    client = polygon.RESTClient(secrets.api_key())
+    tr = client.get_snapshot_ticker("stocks", stock)
+    tmst = datetime.datetime.fromtimestamp(tr.min.timestamp / 1000, datetime.timezone.utc)
+    bst = pytz.timezone('Europe/London')
+    tmst = tmst.astimezone(bst)
+    #tmst = pytz.utc.localize(tmst)
+    return (tr.prev_day.close, tmst)
+
+
 def get_curr_price(stock):
     client = polygon.RESTClient(secrets.api_key())
     tr = client.get_snapshot_ticker("stocks", stock)
@@ -298,7 +308,10 @@ def update_portfolio_stats(db_cursor):
         open_today = get_days_open(stock)[0]
         open_today = decimal.Decimal(open_today)
 
-        days_gain_val = (abs(curr_price)- open_today) * posn_dirn
+        prev_day_close = get_prev_close(stock)[0]
+        prev_day_close = decimal.Decimal(prev_day_close)
+
+        days_gain_val = (abs(curr_price)- prev_day_close) * posn_dirn
 
         #if len(intervals) == 2:
         #   intervals.append(datetime.datetime.now() - t1)
