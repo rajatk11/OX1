@@ -394,7 +394,7 @@ def main_run(db_params):
 
     trlist = get_trades_to_exec(db_cursor)
     print('TR list done', trlist)
-    exec_list = 187 (trlist, db_cursor)
+    exec_list = exec_trades (trlist, db_cursor)
     print('HERE we go......' , exec_list)
     tr_up_lst = update_portfolio_trade(exec_list, db_cursor)
     print(tr_up_lst)
