@@ -311,7 +311,7 @@ def update_portfolio_stats(db_cursor):
         prev_day_close = get_prev_close(stock)[0]
         prev_day_close = decimal.Decimal(prev_day_close)
 
-        days_gain_val = (abs(curr_price)- prev_day_close) * posn_dirn
+        days_gain_val = (abs(curr_price)- prev_day_close) * posn_dirn * posn_unit_size
 
         #if len(intervals) == 2:
         #   intervals.append(datetime.datetime.now() - t1)
